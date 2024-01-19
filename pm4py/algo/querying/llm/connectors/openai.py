@@ -53,5 +53,6 @@ def apply(prompt: str, parameters: Optional[Dict[Any, Any]] = None) -> str:
         payload["max_tokens"] = 4096
 
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload).json()
+    # print(response)
 
     return response["choices"][0]["message"]["content"]

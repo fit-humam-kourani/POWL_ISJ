@@ -2,18 +2,28 @@ import os
 import tempfile
 from enum import Enum
 from graphviz import Digraph
-from pm4py.objects.powl.constants import SILENT_TRANSITION_LABEL
 from pm4py.objects.process_tree.obj import Operator
 from pm4py.util import exec_utils
 from typing import Optional, Dict, Any, Union
 from pm4py.objects.powl.obj import POWL, Transition, SilentTransition, StrictPartialOrder, OperatorPOWL, \
     FrequentTransition
 
-COLOR_XOR = "white"
-COLOR_LOOP = "white"
-COLOR_ACTIVITY = "white"
-COLOR_PO = "white"
 OPERATOR_BOXES = True
+FREQUENCY_TAG_IMAGES = True
+
+min_width = "1.5"  # Set the minimum width in inches
+min_height = "0.5"
+fillcolor = "#fcfcfc"
+opacity_change_ratio = 0.02
+icons_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
+xor_image = os.path.join(icons_dir, "xor gate.png")
+skip_image = os.path.join(icons_dir, "skip-tag.svg")
+loop_image = os.path.join(icons_dir, "loop-tag.svg")
+skip_loop_image = os.path.join(icons_dir, "skip-loop-tag.svg")
+start_image = os.path.join(icons_dir, "play.png")
+end_image = os.path.join(icons_dir, "end.png")
+loop_operator_image = os.path.join(icons_dir, "loop.png")
+xor_operator_image = os.path.join(icons_dir, "xor.png")
 
 
 class Parameters(Enum):
@@ -52,11 +62,14 @@ def apply(powl: POWL, parameters: Optional[Dict[Union[str, Parameters], Any]] = 
     viz.attr(compound='true')
     viz.attr(overlap='scale')
     viz.attr(splines='true')
+    viz.attr(rankdir='TB')
+    viz.attr(style="filled")
+    viz.attr(fillcolor=fillcolor)
 
     image_format = exec_utils.get_param_value(Parameters.FORMAT, parameters, "png")
     color_map = exec_utils.get_param_value(Parameters.COLOR_MAP, parameters, {})
 
-    repr_powl(powl, viz, color_map, parameters)
+    repr_powl(powl, viz, color_map, parameters, level=0)
     viz.format = image_format
 
     return viz
@@ -126,38 +139,46 @@ def add_order_edge(block, child_1, child_2, directory='forward', color="black", 
             block.edge(get_id_base(child_1), get_id_base(child_2), dir=directory, color=color, style=style)
 
 
-def repr_powl(powl, viz, color_map, parameters):
-    font_size = exec_utils.get_param_value(Parameters.FONT_SIZE, parameters, 25)
-    font_size = str(font_size)
+def repr_powl(powl, viz, color_map, parameters, level):
+    font_size = "18"
     this_node_id = str(id(powl))
 
-    script_dir = os.path.dirname(os.path.realpath(__file__))
+    current_color = darken_color(fillcolor, amount=opacity_change_ratio * level)
 
     if isinstance(powl, FrequentTransition):
         label = powl.activity
         if powl.skippable:
-            label = label + "\n?"
             if powl.selfloop:
-                label = label + "*"
-        elif powl.selfloop:
-            label = label + "\n*"
-        viz.node(this_node_id, label, shape="box", fontsize=font_size,
-                 style='filled', fillcolor=COLOR_ACTIVITY)
+                viz.node(this_node_id, label='\n' + label, imagepos='tr', image=skip_loop_image,
+                         shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
+            else:
+                viz.node(this_node_id, label="\n" + label, imagepos='tr',
+                         image=skip_image,
+                         shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
+        else:
+            if powl.selfloop:
+                viz.node(this_node_id, label="\n" + label, imagepos='tr',
+                         image=loop_image,
+                         shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
+            else:
+                viz.node(this_node_id, label=label,
+                         shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
     elif isinstance(powl, Transition):
         if isinstance(powl, SilentTransition):
-            viz.node(this_node_id, SILENT_TRANSITION_LABEL, style='filled', fillcolor='black', shape='square',
-                     width='0.4', height='0.4', fixedsize="true")
+            viz.node(this_node_id, label='', style='filled', fillcolor='black', shape='square',
+                     width='0.3', height='0.3', fixedsize="true")
         else:
-            viz.node(this_node_id, str(powl.label), shape='box', fontsize=font_size, style='filled',
-                     fillcolor=COLOR_ACTIVITY)
+            viz.node(this_node_id, str(powl.label), shape='box', fontsize=font_size, width=min_width, style='filled',
+                     fillcolor=current_color)
 
     elif isinstance(powl, StrictPartialOrder):
         transitive_reduction = powl.order.get_transitive_reduction()
         with viz.subgraph(name=get_id(powl)) as block:
+            block.attr(margin="20,20")
             block.attr(style="filled")
-            block.attr(fillcolor="white")
+            block.attr(fillcolor=current_color)
             for child in powl.children:
-                repr_powl(child, block, color_map, parameters)
+                repr_powl(child, block, color_map, parameters, level=level+1)
             for child in powl.children:
                 for child2 in powl.children:
                     if transitive_reduction.is_edge(child, child2):
@@ -165,22 +186,31 @@ def repr_powl(powl, viz, color_map, parameters):
 
     elif isinstance(powl, OperatorPOWL):
         with viz.subgraph(name=get_id(powl)) as block:
+            block.attr(margin="20,20")
             block.attr(style="filled")
-            block.attr(fillcolor=COLOR_LOOP)
+            block.attr(fillcolor=current_color)
             if powl.operator == Operator.LOOP:
-                block.node(this_node_id, image=os.path.join(script_dir, "loop.png"), label="", fontsize=font_size,
-                           width='0.5', height='0.5', fixedsize="true", style="filled", fillcolor=COLOR_LOOP)
+                block.node(this_node_id, image=loop_operator_image, label="", fontsize=font_size,
+                           width='0.4', height='0.4', fixedsize="true")
                 do = powl.children[0]
                 redo = powl.children[1]
-                repr_powl(do, block, color_map, parameters)
+                repr_powl(do, block, color_map, parameters, level=level+1)
                 add_operator_edge(block, this_node_id, do)
-                repr_powl(redo, block, color_map, parameters)
+                repr_powl(redo, block, color_map, parameters, level=level+1)
                 add_operator_edge(block, this_node_id, redo, style="dashed")
             elif powl.operator == Operator.XOR:
-                block.attr(style="filled")
-                block.attr(fillcolor=COLOR_XOR)
-                block.node(this_node_id, image=os.path.join(script_dir, "xor.png"), label="", fontsize=font_size,
-                           width='0.5', height='0.5', fixedsize="true", style="filled", fillcolor=COLOR_XOR)
+                block.node(this_node_id, image=xor_operator_image, label="", fontsize=font_size,
+                           width='0.4', height='0.4', fixedsize="true")
                 for child in powl.children:
-                    repr_powl(child, block, color_map, parameters)
+                    repr_powl(child, block, color_map, parameters, level=level+1)
                     add_operator_edge(block, this_node_id, child)
+
+
+def darken_color(color, amount):
+    """ Darkens the given color by the specified amount """
+    import matplotlib.colors as mcolors
+    amount = min(0.3, amount)
+
+    rgb = mcolors.to_rgb(color)
+    darker = [x * (1 - amount) for x in rgb]
+    return mcolors.to_hex(darker)

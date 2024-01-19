@@ -1,6 +1,8 @@
 import pandas as pd
 from pm4py.objects.log.obj import EventLog, EventStream, Trace
 from typing import Union, Optional, Dict, Tuple, Any
+
+from pm4py.objects.powl.obj import POWL
 from pm4py.utils import get_properties, constants
 from pm4py.utils import __event_log_deprecation_warning
 from pm4py.objects.ocel.obj import OCEL
@@ -242,6 +244,30 @@ def abstract_petri_net(net: PetriNet, im: Marking, fm: Marking, response_header:
 
     from pm4py.algo.querying.llm.abstractions import net_to_descr
     return net_to_descr.apply(net, im, fm, parameters=parameters)
+
+
+def abstract_powl(powl: POWL, response_header: bool = True) -> str:
+    """
+    Obtain an abstraction of a POWL model
+
+    :param powl: POWL model
+    :param response_header: includes the header of the response
+    :rtype: ``str``
+
+    .. code-block:: python3
+
+        import pm4py
+
+        log = pm4py.read_xes("tests/input_data/roadtraffic100traces.xes")
+        powl_model = pm4py.discover_powl(log)
+        print(pm4py.llm.abstract_powl(powl_model))
+    """
+    parameters = {}
+
+    parameters["response_header"] = response_header
+
+    from pm4py.algo.querying.llm.abstractions import powl_to_descr
+    return powl_to_descr.apply(powl, parameters=parameters)
 
 
 def abstract_log_attributes(log_obj: Union[pd.DataFrame, EventLog, EventStream], max_len: int = constants.OPENAI_MAX_LEN, activity_key: str = "concept:name", timestamp_key: str = "time:timestamp", case_id_key: str = "case:concept:name") -> str:
