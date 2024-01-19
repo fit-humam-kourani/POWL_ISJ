@@ -22,6 +22,7 @@ from pm4py.objects.trie.obj import Trie
 from pm4py.objects.ocel.obj import OCEL
 from pm4py.objects.org.sna.obj import SNA
 from pm4py.util import constants
+from pm4py.visualization.powl.visualizer import POWLVisualizationVariants
 
 
 def view_petri_net(petri_net: PetriNet, initial_marking: Optional[Marking] = None,
@@ -1233,7 +1234,7 @@ def save_vis_footprints(footprints: Union[Tuple[Dict[str, Any], Dict[str, Any]],
     return fps_visualizer.save(gviz, file_path)
 
 
-def view_powl(powl: POWL, format: str = constants.DEFAULT_FORMAT_GVIZ_VIEW, bgcolor: str = "white"):
+def view_powl(powl: POWL, format: str = "svg"):
     """
     Perform a visualization of a POWL model.
 
@@ -1242,8 +1243,6 @@ def view_powl(powl: POWL, format: str = constants.DEFAULT_FORMAT_GVIZ_VIEW, bgco
 
     :param powl: POWL model
     :param format: format of the visualization (default: png)
-    :param bgcolor: background color of the visualization (default: white)
-    :param rankdir: sets the direction of the graph ("LR" for left-to-right; "TB" for top-to-bottom)
 
      .. code-block:: python3
 
@@ -1256,7 +1255,33 @@ def view_powl(powl: POWL, format: str = constants.DEFAULT_FORMAT_GVIZ_VIEW, bgco
     format = str(format).lower()
 
     from pm4py.visualization.powl import visualizer as powl_visualizer
-    gviz = powl_visualizer.apply(powl, parameters={"format": format, "bgcolor": bgcolor})
+    gviz = powl_visualizer.apply(powl, parameters={"format": format}, variant=POWLVisualizationVariants.BASIC)
+
+    powl_visualizer.view(gviz)
+
+
+def view_powl_net(powl: POWL, format: str = "svg"):
+    """
+    Perform a visualization of a POWL model with decision gates.
+
+    Reference paper:
+    Kourani, Humam, and Sebastiaan J. van Zelst. "POWL: partially ordered workflow language." International Conference on Business Process Management. Cham: Springer Nature Switzerland, 2023.
+
+    :param powl: POWL model
+    :param format: format of the visualization (default: png)
+
+     .. code-block:: python3
+
+        import pm4py
+
+        log = pm4py.read_xes('tests/input_data/running-example.xes')
+        powl_model = pm4py.discover_powl(log)
+        pm4py.view_powl(powl_model, format='svg')
+    """
+    format = str(format).lower()
+
+    from pm4py.visualization.powl import visualizer as powl_visualizer
+    gviz = powl_visualizer.apply(powl, parameters={"format": format}, variant=POWLVisualizationVariants.NET)
 
     powl_visualizer.view(gviz)
 

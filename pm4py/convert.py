@@ -137,6 +137,10 @@ def convert_to_bpmn(*args: Union[Tuple[PetriNet, Marking, Marking], ProcessTree]
         # the object is already a BPMN
         return args[0]
     elif isinstance(args[0], ProcessTree):
+        if isinstance(args[0], POWL):
+            net, im, fm = convert_to_petri_net(*args)
+            from pm4py.objects.conversion.wf_net.variants import to_bpmn
+            return to_bpmn.apply(net, im, fm)
         from pm4py.objects.conversion.process_tree.variants import to_bpmn
         return to_bpmn.apply(args[0])
     else:
