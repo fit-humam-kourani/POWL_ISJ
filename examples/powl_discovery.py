@@ -5,7 +5,7 @@ from pm4py.algo.discovery.powl.inductive.variants.powl_discovery_varaints import
 
 
 def execute_script():
-    log = pm4py.read_xes("../tests/compressed_input_data/13_SEPSIS_1t_per_variant.xes.gz")
+    log = pm4py.read_xes("../tests/compressed_input_data/08_receipt.xes.gz")
 
     # discovery
     powl_model = pm4py.discover_powl(log,
@@ -15,7 +15,6 @@ def execute_script():
     # visualization with frequency tags
     pm4py.view_powl(powl_model)
 
-    # visualization with frequency tags and decision gates
     pm4py.view_powl_net(powl_model)
 
     # export as Workflow Net
