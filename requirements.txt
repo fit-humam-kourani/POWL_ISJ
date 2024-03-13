@@ -11,3 +11,4 @@ pytz
 scipy
 stringdist
 tqdm
+cairosvg
