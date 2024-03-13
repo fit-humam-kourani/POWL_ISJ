@@ -1,11 +1,9 @@
 import importlib.resources
-import os
 import tempfile
 from enum import Enum
 from graphviz import Digraph
 from pm4py.objects.process_tree.obj import Operator
 from pm4py.util import exec_utils
-from typing import Optional, Dict, Any, Union
 from pm4py.objects.powl.obj import POWL, Transition, SilentTransition, StrictPartialOrder, OperatorPOWL, \
     FrequentTransition
 
@@ -18,15 +16,6 @@ fillcolor = "#fcfcfc"
 opacity_change_ratio = 0.02
 
 
-# icons_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
-# xor_image = os.path.join(icons_dir, "xor gate.png")
-# skip_image = os.path.join(icons_dir, "skip-tag.svg")
-# loop_image = os.path.join(icons_dir, "loop-tag.svg")
-# start_image = os.path.join(icons_dir, "play.png")
-# end_image = os.path.join(icons_dir, "end.png")
-# loop_operator_image = os.path.join(icons_dir, "loop.png")
-
-
 class Parameters(Enum):
     FORMAT = "format"
     COLOR_MAP = "color_map"
@@ -35,7 +24,7 @@ class Parameters(Enum):
     BGCOLOR = "bgcolor"
 
 
-def apply(powl: POWL, parameters: Optional[Dict[Union[str, Parameters], Any]] = None) -> Digraph:
+def apply(powl: POWL) -> Digraph:
     """
     Obtain a POWL model representation through GraphViz
 
@@ -43,16 +32,12 @@ def apply(powl: POWL, parameters: Optional[Dict[Union[str, Parameters], Any]] = 
     -----------
     powl
         POWL model
-    parameters
-        Possible parameters of the algorithm
 
     Returns
     -----------
     gviz
         GraphViz Digraph
     """
-    if parameters is None:
-        parameters = {}
 
     filename = tempfile.NamedTemporaryFile(suffix='.gv')
 
@@ -67,11 +52,10 @@ def apply(powl: POWL, parameters: Optional[Dict[Union[str, Parameters], Any]] = 
     viz.attr(style="filled")
     viz.attr(fillcolor=fillcolor)
 
-    image_format = exec_utils.get_param_value(Parameters.FORMAT, parameters, "png")
-    color_map = exec_utils.get_param_value(Parameters.COLOR_MAP, parameters, {})
+    color_map = exec_utils.get_param_value(Parameters.COLOR_MAP, {}, {})
 
-    repr_powl(powl, viz, color_map, parameters, level=0)
-    viz.format = image_format
+    repr_powl(powl, viz, color_map, level=0)
+    viz.format = "svg"
 
     return viz
 
@@ -140,7 +124,7 @@ def add_order_edge(block, child_1, child_2, directory='forward', color="black", 
             block.edge(get_id_base(child_1), get_id_base(child_2), dir=directory, color=color, style=style)
 
 
-def repr_powl(powl, viz, color_map, parameters, level):
+def repr_powl(powl, viz, color_map, level):
     font_size = "18"
     this_node_id = str(id(powl))
 
@@ -150,18 +134,18 @@ def repr_powl(powl, viz, color_map, parameters, level):
         label = powl.activity
         if powl.skippable:
             if powl.selfloop:
-                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "skip-loop-tag.png") as gimg:
+                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "skip-loop-tag.svg") as gimg:
                     image = str(gimg)
                     viz.node(this_node_id, label='\n' + label, imagepos='tr', image=image,
                              shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
             else:
-                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "skip-tag.png") as gimg:
+                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "skip-tag.svg") as gimg:
                     image = str(gimg)
                     viz.node(this_node_id, label='\n' + label, imagepos='tr', image=image,
                              shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
         else:
             if powl.selfloop:
-                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "loop-tag.png") as gimg:
+                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "loop-tag.svg") as gimg:
                     image = str(gimg)
                     viz.node(this_node_id, label='\n' + label, imagepos='tr', image=image,
                              shape='box', width=min_width, fontsize=font_size, style='filled', fillcolor=current_color)
@@ -183,7 +167,7 @@ def repr_powl(powl, viz, color_map, parameters, level):
             block.attr(style="filled")
             block.attr(fillcolor=current_color)
             for child in powl.children:
-                repr_powl(child, block, color_map, parameters, level=level + 1)
+                repr_powl(child, block, color_map, level=level + 1)
             for child in powl.children:
                 for child2 in powl.children:
                     if transitive_reduction.is_edge(child, child2):
@@ -195,23 +179,23 @@ def repr_powl(powl, viz, color_map, parameters, level):
             block.attr(style="filled")
             block.attr(fillcolor=current_color)
             if powl.operator == Operator.LOOP:
-                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "loop.png") as gimg:
+                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "loop.svg") as gimg:
                     image = str(gimg)
                     block.node(this_node_id, image=image, label="", fontsize=font_size,
                                width='0.4', height='0.4', fixedsize="true")
                 do = powl.children[0]
                 redo = powl.children[1]
-                repr_powl(do, block, color_map, parameters, level=level + 1)
+                repr_powl(do, block, color_map, level=level + 1)
                 add_operator_edge(block, this_node_id, do)
-                repr_powl(redo, block, color_map, parameters, level=level + 1)
+                repr_powl(redo, block, color_map, level=level + 1)
                 add_operator_edge(block, this_node_id, redo, style="dashed")
             elif powl.operator == Operator.XOR:
-                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "xor.png") as gimg:
+                with importlib.resources.path("pm4py.visualization.powl.variants.icons", "xor.svg") as gimg:
                     image = str(gimg)
                     block.node(this_node_id, image=image, label="", fontsize=font_size,
                                width='0.4', height='0.4', fixedsize="true")
                 for child in powl.children:
-                    repr_powl(child, block, color_map, parameters, level=level + 1)
+                    repr_powl(child, block, color_map, level=level + 1)
                     add_operator_edge(block, this_node_id, child)
 
 

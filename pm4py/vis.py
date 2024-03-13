@@ -2,16 +2,12 @@ __doc__ = """
 The ``pm4py.vis`` module contains the visualizations offered in ``pm4py``
 """
 
-import base64
 import os
-import re
 import sys
-import tempfile
 from typing import Optional
 from typing import Union, List, Dict, Any, Tuple, Set
 
 import pandas as pd
-from graphviz import Source
 
 from pm4py.objects.bpmn.obj import BPMN
 from pm4py.objects.powl.obj import POWL
@@ -1320,7 +1316,7 @@ def save_vis_footprints(footprints: Union[Tuple[Dict[str, Any], Dict[str, Any]],
     return fps_visualizer.save(gviz, file_path)
 
 
-def view_powl(powl: POWL, format: str = "svg"):
+def view_powl(powl: POWL, image_format: str = "svg"):
     """
     Perform a visualization of a POWL model.
 
@@ -1328,7 +1324,7 @@ def view_powl(powl: POWL, format: str = "svg"):
     Kourani, Humam, and Sebastiaan J. van Zelst. "POWL: partially ordered workflow language." International Conference on Business Process Management. Cham: Springer Nature Switzerland, 2023.
 
     :param powl: POWL model
-    :param format: format of the visualization (default: png)
+    :param image_format: format of the visualization (default: png)
 
      .. code-block:: python3
 
@@ -1338,39 +1334,14 @@ def view_powl(powl: POWL, format: str = "svg"):
         powl_model = pm4py.discover_powl(log)
         pm4py.view_powl(powl_model, format='svg')
     """
-    format = str(format).lower()
 
     from pm4py.visualization.powl import visualizer as powl_visualizer
-    gviz = powl_visualizer.apply(powl, parameters={"format": format}, variant=POWLVisualizationVariants.BASIC)
+    gviz = powl_visualizer.apply(powl, variant=POWLVisualizationVariants.BASIC)
 
-    svg_content = gviz.pipe().decode('utf-8')
-
-    def inline_images(svg_content):
-
-        img_pattern = re.compile(r'<image[^>]+href=["\'](.*?)["\']')
-
-        def encode_image_to_base64(file_path):
-            with open(file_path, 'rb') as image_file:
-                return base64.b64encode(image_file.read()).decode('utf-8')
-
-        def replace_with_base64(match):
-            file_path = match.group(1)
-            base64_data = encode_image_to_base64(file_path)
-            return match.group(0).replace(file_path, f"data:image/png;base64,{base64_data}")
-
-        return img_pattern.sub(replace_with_base64, svg_content)
-
-    svg_content_with_inline_images = inline_images(svg_content)
-
-    with tempfile.NamedTemporaryFile(delete=False, mode='w+', suffix='.svg') as tmpfile:
-        tmpfile.write(svg_content_with_inline_images)
-        tmpfile_path = tmpfile.name
-        import webbrowser
-        absolute_path = os.path.abspath(tmpfile_path)
-        webbrowser.open('file://' + absolute_path)
+    powl_visualizer.view(gviz, image_format=image_format)
 
 
-def view_powl_net(powl: POWL, format: str = "svg"):
+def view_powl_net(powl: POWL, image_format: str = "svg"):
     """
     Perform a visualization of a POWL model with decision gates.
 
@@ -1378,7 +1349,7 @@ def view_powl_net(powl: POWL, format: str = "svg"):
     Kourani, Humam, and Sebastiaan J. van Zelst. "POWL: partially ordered workflow language." International Conference on Business Process Management. Cham: Springer Nature Switzerland, 2023.
 
     :param powl: POWL model
-    :param format: format of the visualization (default: png)
+    :param image_format: format of the visualization (default: png)
 
      .. code-block:: python3
 
@@ -1388,12 +1359,12 @@ def view_powl_net(powl: POWL, format: str = "svg"):
         powl_model = pm4py.discover_powl(log)
         pm4py.view_powl(powl_model, format='svg')
     """
-    format = str(format).lower()
+    image_format = str(image_format).lower()
 
     from pm4py.visualization.powl import visualizer as powl_visualizer
-    gviz = powl_visualizer.apply(powl, parameters={"format": format}, variant=POWLVisualizationVariants.NET)
+    gviz = powl_visualizer.apply(powl, variant=POWLVisualizationVariants.NET)
 
-    powl_visualizer.view(gviz)
+    powl_visualizer.view(gviz, image_format=image_format)
 
 
 def save_vis_powl(powl: POWL, file_path: str, bgcolor: str = "white", rankdir: str = "TB", **kwargs):

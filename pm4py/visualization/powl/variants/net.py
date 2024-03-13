@@ -1,12 +1,11 @@
+import importlib.resources
 import os
 
 from pm4py.objects.powl.obj import POWL
-from pm4py.util import exec_utils
 from enum import Enum
 import tempfile
 import graphviz
 from graphviz import Digraph
-from typing import Optional, Dict, Any
 from pm4py.util import constants
 from pm4py.objects.bpmn.obj import BPMN
 from pm4py.objects.bpmn.util.sorting import get_sorted_nodes_edges
@@ -25,14 +24,6 @@ min_width = "1.5"  # Set the minimum width in inches
 min_height = "0.5"
 node_color = "#f2f2f2"
 silent_node_color = "black"
-
-icons_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "icons")
-xor_image = os.path.join(icons_dir, "xor gate.png")
-skip_image = os.path.join(icons_dir, "skip-tag.svg")
-loop_image = os.path.join(icons_dir, "loop-tag.svg")
-skip_loop_image = os.path.join(icons_dir, "skip-loop-tag.svg")
-start_image = os.path.join(icons_dir, "play.svg")
-end_image = os.path.join(icons_dir, "end.svg")
 
 
 class SplitExclusiveGateway(BPMN.ExclusiveGateway):
@@ -71,25 +62,34 @@ def simplify_and_gateways(nodes, edges):
     return nodes, edges
 
 
-def add_node(n, viz, parameters):
+def add_node(n, viz):
     n_id = str(id(n))
     if isinstance(n, FrequencyTask):
         font_size = '18'
         if FREQUENCY_TAG_IMAGES:
             if n.skippable:
                 if n.selfloop:
-                    viz.node(n_id, label='\n' + n.activity, imagepos='tr',
-                             image=skip_loop_image, style='filled', fillcolor=node_color,
-                             shape='box', width=min_width, fontsize=font_size)
+                    with importlib.resources.path("pm4py.visualization.powl.variants.icons",
+                                                  "skip-loop-tag.svg") as gimg:
+                        image = str(gimg)
+                        viz.node(n_id, label='\n' + n.activity, imagepos='tr',
+                                 image=image, style='filled', fillcolor=node_color,
+                                 shape='box', width=min_width, fontsize=font_size)
                 else:
-                    viz.node(n_id, label="\n" + n.activity, imagepos='tr',
-                             image=skip_image, style='filled', fillcolor=node_color,
-                             shape='box', width=min_width, fontsize=font_size)
+                    with importlib.resources.path("pm4py.visualization.powl.variants.icons",
+                                                  "skip-tag.svg") as gimg:
+                        skip_image = str(gimg)
+                        viz.node(n_id, label="\n" + n.activity, imagepos='tr',
+                                 image=skip_image, style='filled', fillcolor=node_color,
+                                 shape='box', width=min_width, fontsize=font_size)
             else:
                 if n.selfloop:
-                    viz.node(n_id, label="\n" + n.activity, imagepos='tr',
-                             image=loop_image, style='filled', fillcolor=node_color,
-                             shape='box', width=min_width, fontsize=font_size)
+                    with importlib.resources.path("pm4py.visualization.powl.variants.icons",
+                                                  "loop-tag.svg") as gimg:
+                        loop_image = str(gimg)
+                        viz.node(n_id, label="\n" + n.activity, imagepos='tr',
+                                 image=loop_image, style='filled', fillcolor=node_color,
+                                 shape='box', width=min_width, fontsize=font_size)
                 else:
                     viz.node(n_id, label=n.activity, style='filled', fillcolor=node_color,
                              shape='box', width=min_width, fontsize=font_size)
@@ -104,28 +104,38 @@ def add_node(n, viz, parameters):
                 viz.edge(n_id, n_id)
 
     elif isinstance(n, BPMN.StartEvent):
-        viz.node(n_id, image=start_image, label="", shape="none", width='0.35',
-                 height='0.35', fixedsize="true", style='filled', fillcolor=node_color)
+        with importlib.resources.path("pm4py.visualization.powl.variants.icons", "play.svg") as gimg:
+            start_image = str(gimg)
+            viz.node(n_id, image=start_image, label="", shape="none", width='0.35',
+                     height='0.35', fixedsize="true", style='filled', fillcolor=node_color)
     elif isinstance(n, BPMN.EndEvent):
-        viz.node(n_id, image=end_image, label="", shape="none", width='0.35',
-                 height='0.35', fixedsize="true", style='filled', fillcolor=node_color)
+        with importlib.resources.path("pm4py.visualization.powl.variants.icons", "end.svg") as gimg:
+            end_image = str(gimg)
+            viz.node(n_id, image=end_image, label="", shape="none", width='0.35',
+                     height='0.35', fixedsize="true", style='filled', fillcolor=node_color)
     elif isinstance(n, BPMN.ParallelGateway):
         viz.node(n_id, label="", shape="square", style="filled", fillcolor=silent_node_color, width='0.3',
                  height='0.3')
     elif isinstance(n, SplitExclusiveGateway):
-        viz.node(n_id, label="", shape="diamond", style="filled", fillcolor="lightgreen",
-                 width='0.4', height='0.4', fixedsize="true", image=xor_image)
+        with importlib.resources.path("pm4py.visualization.powl.variants.icons", "gate.svg") as gimg:
+            xor_image = str(gimg)
+            viz.node(n_id, label="", shape="diamond", style="filled", fillcolor="lightgreen",
+                     width='0.4', height='0.4', fixedsize="true", image=xor_image)
     elif isinstance(n, JoinExclusiveGateway):
-        viz.node(n_id, label="", shape="diamond", style="filled", fillcolor="orange",
-                 width='0.4', height='0.4', fixedsize="true", image=xor_image)
+        with importlib.resources.path("pm4py.visualization.powl.variants.icons", "gate.svg") as gimg:
+            xor_image = str(gimg)
+            viz.node(n_id, label="", shape="diamond", style="filled", fillcolor="orange",
+                     width='0.4', height='0.4', fixedsize="true", image=xor_image)
     elif isinstance(n, BPMN.ExclusiveGateway):
+        with importlib.resources.path("pm4py.visualization.powl.variants.icons", "gate.svg") as gimg:
+            xor_image = str(gimg)
         viz.node(n_id, label="", shape="diamond", style="filled", fillcolor=node_color,
                  width='0.4', height='0.4', fixedsize="true", image=xor_image)
     else:
         raise Exception("Unexpected instance of class " + str(type(n)) + "!")
 
 
-def apply(powl: POWL, parameters: Optional[Dict[Any, Any]] = None) -> graphviz.Digraph:
+def apply(powl: POWL) -> graphviz.Digraph:
     pn_2, init_2, final_2 = powl_to_pn(powl)
     bpmn_graph = to_bpmn(pn_2, init_2, final_2)
 
@@ -148,10 +158,8 @@ def apply(powl: POWL, parameters: Optional[Dict[Any, Any]] = None) -> graphviz.D
 
     nodes, edges = simplify_and_gateways(nodes, edges)
 
-    image_format = exec_utils.get_param_value(Parameters.FORMAT, parameters, "png")
-    rankdir = exec_utils.get_param_value(Parameters.RANKDIR, parameters, "LR")
-
-    bgcolor = exec_utils.get_param_value(Parameters.BGCOLOR, parameters, constants.DEFAULT_BGCOLOR)
+    rankdir = "LR"
+    bgcolor = constants.DEFAULT_BGCOLOR
 
     filename = tempfile.NamedTemporaryFile(suffix='.gv')
     viz = Digraph("", filename=filename.name, engine='dot', graph_attr={'bgcolor': bgcolor})
@@ -172,7 +180,7 @@ def apply(powl: POWL, parameters: Optional[Dict[Any, Any]] = None) -> graphviz.D
             continue
 
     for node in nodes:
-        add_node(node, viz, parameters)
+        add_node(node, viz)
     add_concurrent_subgraphs(viz, find_concurrent_groups(nodes, edges))
 
     for e in edges:
@@ -183,7 +191,7 @@ def apply(powl: POWL, parameters: Optional[Dict[Any, Any]] = None) -> graphviz.D
 
     viz.attr(overlap='false')
 
-    viz.format = image_format
+    viz.format = "svg"
 
     return viz
 

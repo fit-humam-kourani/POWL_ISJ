@@ -2,6 +2,7 @@ import os
 
 import pm4py
 from pm4py.algo.discovery.powl.inductive.variants.powl_discovery_varaints import POWLDiscoveryVariant as Variants
+from pm4py.visualization.powl.visualizer import POWLVisualizationVariants
 
 
 def execute_script():
@@ -15,6 +16,7 @@ def execute_script():
     # visualization with frequency tags
     pm4py.view_powl(powl_model)
 
+    # visualization with decision gates
     pm4py.view_powl_net(powl_model)
 
     # export as Workflow Net
